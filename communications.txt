@@ -1,0 +1,27 @@
+EMAIL | From: Dinesh | To: Hari <d97148012> | Subject: want a leave for illness | SentAt: 2026-01-04T07:12:59 | Message: Hi Hari,
+
+Dinesh would like to discuss travel plans with you.
+
+This is an automatic notification from the Trip Planner.
+
+SYSTEM_NOTIFY | To: Your Name Here <your_email@example.com> | Subject: Trip email sent | At: 2026-01-04T07:12:59 | Message: Dinesh sent an email to Hari <d97148012> with subject 'want a leave for illness'.
+EMAIL | From: Dinesh | To: Hari <dineshguru0609@gmail.com> | Subject: want a leave for one day | SentAt: 2026-01-04T07:30:38 | Message: i went to ooty so i need one leave.
+EMAIL_OUT | From: your_gmail@gmail.com | To: dineshguru0609@gmail.com | Subject: want a leave for one day | At: 2026-01-04T07:30:38 | Body: Hi Hari,  This email is from Dinesh via the Trip Planner.  i went to ooty so i need one leave.  This email was sent automatically by the Trip Planner. 
+EMAIL_OUT | From: your_gmail@gmail.com | To: your_gmail@gmail.com | Subject: Trip email sent | At: 2026-01-04T07:30:41 | Body: Dinesh sent an email to Hari <dineshguru0609@gmail.com> with subject 'want a leave for one day'.
+EMAIL | From: Dinesh | To: Hari <dineshguru0609@gmail.com> | Subject: leave for one day | SentAt: 2026-01-04T07:34:49 | Message: Hi Hari,
+
+Dinesh would like to discuss travel plans with you.
+
+This is an automatic notification from the Trip Planner.
+
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: leave for one day | At: 2026-01-04T07:34:49 | Body: Hi Hari,  This email is from Dinesh via the Trip Planner.  Hi Hari,  Dinesh would like to discuss travel plans with you.  This is an automatic notification from the Trip Planner.   This email was sent automatically by the Trip Planner. 
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-04T07:34:52 | Body: Dinesh sent an email to Hari <dineshguru0609@gmail.com> with subject 'leave for one day'.
+GOOGLE_MEET | Organizer: Dinesh | Participant: Rajesh <dineshguru0609@gmail.com> | Subject: for annual meeting | DateTime: 2026-01-04T08:30:00 | Link: https://meet.google.com/040-8300-000
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: Google Meet invitation | At: 2026-01-04T07:36:49 | Body: Hi Rajesh,  Dinesh scheduled a Google Meet with you. Subject: for annual meeting Date & Time: 2026-01-04T08:30:00 Meet link: https://meet.google.com/040-8300-000  This email was sent automatically by the Trip Planner. 
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Google Meet appointment created | At: 2026-01-04T07:36:53 | Body: Dinesh booked a Google Meet with Rajesh at 2026-01-04T08:30:00. Link: https://meet.google.com/040-8300-000
+GOOGLE_MEET | Organizer: Dinesh | Participant: Tharun <tharun0385@gmail.com> | Subject: annual sport and academic meet | DateTime: 2026-01-05T09:30:00 | Link: https://meet.google.com/050-9300-000
+EMAIL_OUT | From: d97148012@gmail.com | To: tharun0385@gmail.com | Subject: Google Meet invitation | At: 2026-01-04T07:42:49 | Body: Hi Tharun,  Dinesh scheduled a Google Meet with you. Subject: annual sport and academic meet Date & Time: 2026-01-05T09:30:00 Meet link: https://meet.google.com/050-9300-000  This email was sent automatically by the Trip Planner. 
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Google Meet appointment created | At: 2026-01-04T07:42:52 | Body: Dinesh booked a Google Meet with Tharun at 2026-01-05T09:30:00. Link: https://meet.google.com/050-9300-000
+GOOGLE_MEET | Organizer: Dinesh | Participant: Kuberan <kuberanprem@gmail.com> | Subject: annual plan | DateTime: 2026-01-05T10:45:00 | Link: https://meet.google.com/051-0450-000
+EMAIL_OUT | From: d97148012@gmail.com | To: kuberanprem@gmail.com | Subject: Google Meet invitation | At: 2026-01-04T07:52:50 | Body: Hi Kuberan,  Dinesh scheduled a Google Meet with you. Subject: annual plan Date & Time: 2026-01-05T10:45:00 Meet link: https://meet.google.com/051-0450-000  This email was sent automatically by the Trip Planner. 
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Google Meet appointment created | At: 2026-01-04T07:52:54 | Body: Dinesh booked a Google Meet with Kuberan at 2026-01-05T10:45:00. Link: https://meet.google.com/051-0450-000
