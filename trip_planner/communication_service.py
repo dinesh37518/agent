@@ -1,8 +1,8 @@
 # ================================
 # File: trip_planner/communication_service.py
 # Requires:
-#   - pip install google-generativeai
-#   - export GEMINI_API_KEY="your_gemini_key"
+#   - pip install groq
+#   - export GROQ_API_KEY="gsk_your_groq_key"
 # Optional (for real email sending):
 #   - Gmail 2FA + App Password
 # ================================
@@ -12,11 +12,11 @@ import os
 import smtplib
 import ssl
 
-# Google Gemini (LLM) for improved email content
+# Try Groq (free LLM) for improved email content
 try:
-    import google.generativeai as genai
+    from groq import Groq
 except ImportError:
-    genai = None
+    Groq = None
 
 # =======================================================
 # EMAIL CONFIGURATION: CHANGE THESE TO YOUR REAL DETAILS
@@ -38,12 +38,13 @@ MY_EMAIL = "your_gmail@gmail.com"            # usually same as FROM_EMAIL
 # =======================================================
 
 # =======================================================
-# GEMINI (Google AI) CONFIG
+# FREE AI (GROQ) CONFIG
 # =======================================================
-# Use Gemini to improve/generate email text if available.
-USE_GEMINI = True
-GEMINI_MODEL = "gemini-1.5-flash"  # fast and capable
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+# Use Groq free LLM to improve/generate email text if available.
+USE_GROQ = True
+GROQ_MODEL = "llama-3.1-8b-instant"  # fast, good quality
+# Set your key in environment: GROQ_API_KEY="gsk_..."
+# If no key or library, the code falls back to a polite template.
 # =======================================================
 
 
@@ -52,20 +53,20 @@ class CommunicationService:
         self.my_name = MY_NAME
         self.my_email = MY_EMAIL
 
-        # Init Gemini
+        self._ai_client = None
         self._ai_enabled = False
-        self._gemini_model = None
-        if USE_GEMINI and genai is not None and GEMINI_API_KEY:
-            try:
-                genai.configure(api_key=GEMINI_API_KEY)
-                self._gemini_model = genai.GenerativeModel(GEMINI_MODEL)
-                self._ai_enabled = True
-            except Exception as e:
-                print(f"[Gemini init error] {e}")
-        elif USE_GEMINI and genai is None:
-            print("[Gemini disabled] Package not installed. Run: pip install google-generativeai")
-        elif USE_GEMINI and not GEMINI_API_KEY:
-            print("[Gemini disabled] GEMINI_API_KEY not set. Using template fallback.")
+        if USE_GROQ and Groq is not None:
+            api_key = os.environ.get("GROQ_API_KEY", "").strip()
+            if api_key:
+                try:
+                    self._ai_client = Groq(api_key=api_key)
+                    self._ai_enabled = True
+                except Exception as e:
+                    print(f"[AI init error] {e}")
+            else:
+                print("[AI disabled] GROQ_API_KEY not set. Using template fallback.")
+        elif USE_GROQ and Groq is None:
+            print("[AI disabled] 'groq' library not installed. Run: pip install groq")
 
     def _fmt_date(self, d):
         return d.strftime("%d-%m-%y")
@@ -125,10 +126,10 @@ class CommunicationService:
 
     def _improve_with_ai(self, text, your_name, other_name):
         """
-        Try to improve the email text with Gemini.
+        Try to improve the email text with Groq.
         If not available, use a friendly template around the text.
         """
-        if self._ai_enabled and self._gemini_model is not None:
+        if self._ai_enabled and self._ai_client is not None:
             try:
                 prompt = (
                     "You are an email writing assistant. Rewrite the text to be clear, "
@@ -138,12 +139,20 @@ class CommunicationService:
                     f"Receiver: {other_name}\n\n"
                     f"Original:\n{text}"
                 )
-                resp = self._gemini_model.generate_content(prompt)
-                improved = (getattr(resp, "text", None) or "").strip()
+                resp = self._ai_client.chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=[
+                        {"role": "system", "content": "You write and improve emails."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.6,
+                    max_tokens=400,
+                )
+                improved = (resp.choices[0].message.content or "").strip()
                 if improved:
                     return improved
             except Exception as e:
-                print(f"[Gemini error] {e}")
+                print(f"[AI error] {e}")
 
         # Fallback: nice template (free, no AI)
         return (
@@ -154,7 +163,7 @@ class CommunicationService:
 
     def generate_default_email(self, your_name, other_name, subject, plan=None):
         """
-        Generate a default email body using Gemini based on the subject and optional trip plan.
+        Generate a default email body using AI (Groq) based on the subject and optional trip plan.
         Falls back to a clean template if AI is not available.
         """
         # Build context text for the model or fallback
@@ -169,7 +178,7 @@ class CommunicationService:
             context = f"Subject: {subject}\n{your_name} wants to communicate regarding this subject."
 
         # AI path
-        if self._ai_enabled and self._gemini_model is not None:
+        if self._ai_enabled and self._ai_client is not None:
             try:
                 prompt = (
                     "Write a short, friendly, and professional email body (5-7 lines) that references the given subject. "
@@ -179,12 +188,20 @@ class CommunicationService:
                     f"Sender name: {your_name}\n"
                     f"Context:\n{context}\n"
                 )
-                resp = self._gemini_model.generate_content(prompt)
-                body = (getattr(resp, "text", None) or "").strip()
+                resp = self._ai_client.chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=[
+                        {"role": "system", "content": "You write concise, friendly, professional emails."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.6,
+                    max_tokens=400,
+                )
+                body = (resp.choices[0].message.content or "").strip()
                 if body:
                     return body
             except Exception as e:
-                print(f"[Gemini default-gen error] {e}")
+                print(f"[AI default-gen error] {e}")
 
         # Fallback default body (no AI)
         if plan:
@@ -254,8 +271,9 @@ class CommunicationService:
 
         return {
             "type": "GOOGLE_MEET",
-            "organizer": {"name": your_name, "email": FROM_EMAIL},
-            "participant": {"name": other_name, "email": other_email},
+            "organizer": your_name,
+            "participant": other_name,
+            "email": other_email,
             "subject": subject,
             "datetime": meeting_datetime,
             "link": link,
