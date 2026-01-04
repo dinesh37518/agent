@@ -46,3 +46,13 @@ EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip 
 EMAIL | From: dinesh | To: hari <dineshguru0609@gmail.com> | Subject: due to sickness permission to take leave regarding - you for the best contents | SentAt: 2026-01-04T18:03:14 | BodyLen: 929
 EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: due to sickness permission to take leave regarding - you for the best contents | At: 2026-01-04T18:03:14 | BodyLen: 929
 EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-04T18:03:17 | BodyLen: 150
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Flight booking confirmed | At: 2026-01-04T18:43:17 | BodyLen: 115
+EMAIL | From: Dinesh | To: hari <dineshguru0609@gmail.com> | Subject: plan a trip and enjoying the vacation around TN regarding - you for the best contents | SentAt: 2026-01-04T18:44:40 | BodyLen: 986
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: plan a trip and enjoying the vacation around TN regarding - you for the best contents | At: 2026-01-04T18:44:40 | BodyLen: 986
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-04T18:44:43 | BodyLen: 157
+GOOGLE_MEET | Organizer: Dinesh | Participant: hari <dineshguru0609@gmail.com> | Subject: meeting regarding financial conditions of our company | DateTime: 2026-01-14T09:45:00 | Link: https://meet.google.com/140-9450-000
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: Google Meet invitation | At: 2026-01-04T18:46:55 | BodyLen: 240
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Google Meet appointment created | At: 2026-01-04T18:46:58 | BodyLen: 104
+GOOGLE_MEET | Organizer: dinesh | Participant: hari <dineshguru0609@gmail.com> | Subject: annual planning | DateTime: 2026-01-13T09:30:00 | Link: https://meet.google.com/130-9300-000
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: Google Meet invitation | At: 2026-01-04T18:54:54 | BodyLen: 202
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Google Meet appointment created | At: 2026-01-04T18:54:57 | BodyLen: 104
