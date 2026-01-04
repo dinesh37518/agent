@@ -1,10 +1,11 @@
 # ================================
 # File: trip_planner/communication_service.py
 # Requires:
-#   - pip install groq
-#   - export GROQ_API_KEY="gsk_your_groq_key"
+#   - python3 -m pip install groq
+#   - (Option 1 - recommended) export GROQ_API_KEY="gsk_your_key"
+#   - (Option 2 - quick demo) put your key into DEFAULT_GROQ_API_KEY below
 # Optional (for real email sending):
-#   - Gmail 2FA + App Password
+#   - Gmail 2FA + App Password (set FROM_EMAIL and FROM_PASSWORD)
 # ================================
 
 from datetime import datetime
@@ -12,39 +13,42 @@ import os
 import smtplib
 import ssl
 
-# Try Groq (free LLM) for improved email content
+# Groq (LLM) import
 try:
     from groq import Groq
-except ImportError:
+except Exception as e:
+    print(f"[AI import warning] {e}")
     Groq = None
 
 # =======================================================
 # EMAIL CONFIGURATION: CHANGE THESE TO YOUR REAL DETAILS
 # =======================================================
-# 1) Set this to True to send real emails via Gmail SMTP.
-#    Set to False to only simulate (print + log to file).
+# Send real emails via Gmail SMTP (True) or simulate (False)
 USE_REAL_EMAIL = True
 
-# 2) YOUR Gmail address (the account that sends the emails)
-FROM_EMAIL = "your_gmail@gmail.com"        # <-- PUT YOUR GMAIL HERE
+# YOUR Gmail address (the account that sends the emails)
+FROM_EMAIL = "d97148012@gmail.com"          # <-- PUT YOUR GMAIL HERE
 
-# 3) YOUR Gmail APP PASSWORD (NOT your normal Gmail password)
-#    Turn on 2‑Step Verification in Google, then create an App Password.
-FROM_PASSWORD = "your_16_char_app_password"  # <-- PUT APP PASSWORD HERE
+# YOUR Gmail APP PASSWORD (NOT your normal Gmail password)
+# Turn on 2‑Step Verification in Google, then create an App Password.
+FROM_PASSWORD = "frzxmdgsmmoewooe"  # <-- PUT APP PASSWORD HERE
 
-# 4) Your own name and your own email (for notifications)
-MY_NAME = "Your Name"                        # <-- YOUR NAME
-MY_EMAIL = "your_gmail@gmail.com"            # usually same as FROM_EMAIL
+# Your own name and your own email (for notifications)
+MY_NAME = "Dinesh"                        # <-- YOUR NAME
+MY_EMAIL = "d97148012@gmail.com"            # usually same as FROM_EMAIL
 # =======================================================
 
 # =======================================================
-# FREE AI (GROQ) CONFIG
+# GROQ (AI) CONFIG
 # =======================================================
-# Use Groq free LLM to improve/generate email text if available.
+# Use Groq LLM to generate/improve email text if available.
 USE_GROQ = True
 GROQ_MODEL = "llama-3.1-8b-instant"  # fast, good quality
-# Set your key in environment: GROQ_API_KEY="gsk_..."
-# If no key or library, the code falls back to a polite template.
+
+# EXACT PLACE TO PUT YOUR GROQ API KEY (quick demo):
+# Replace the placeholder below with your real key (starts with gsk_),
+# OR leave it empty and set the env var GROQ_API_KEY in the terminal.
+DEFAULT_GROQ_API_KEY = "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"  # "gsk_your_actual_groq_key_here"  # <-- optional demo only
 # =======================================================
 
 
@@ -55,18 +59,23 @@ class CommunicationService:
 
         self._ai_client = None
         self._ai_enabled = False
+
         if USE_GROQ and Groq is not None:
-            api_key = os.environ.get("GROQ_API_KEY", "").strip()
-            if api_key:
+            # 1) reads from env var GROQ_API_KEY
+            # 2) falls back to DEFAULT_GROQ_API_KEY (demo)
+            api_key = os.environ.get("GROQ_API_KEY", DEFAULT_GROQ_API_KEY).strip()
+
+            if api_key and api_key.startswith("gsk_"):
                 try:
                     self._ai_client = Groq(api_key=api_key)
                     self._ai_enabled = True
                 except Exception as e:
                     print(f"[AI init error] {e}")
             else:
-                print("[AI disabled] GROQ_API_KEY not set. Using template fallback.")
+                print("[AI disabled] No valid Groq API key found. "
+                      "Set DEFAULT_GROQ_API_KEY or export GROQ_API_KEY.")
         elif USE_GROQ and Groq is None:
-            print("[AI disabled] 'groq' library not installed. Run: pip install groq")
+            print("[AI disabled] 'groq' package not installed. Run: python3 -m pip install groq")
 
     def _fmt_date(self, d):
         return d.strftime("%d-%m-%y")
@@ -78,12 +87,13 @@ class CommunicationService:
         except Exception:
             pass
 
+    # =============== FIXED: proper MIME email sending =================
     def _send_email(self, to_email, subject, message):
-        # Log every attempt
+        # Log every attempt (store only length to avoid huge files)
         log_text = (
             f"EMAIL_OUT | From: {FROM_EMAIL} | To: {to_email} | "
             f"Subject: {subject} | At: {datetime.now().isoformat(timespec='seconds')} | "
-            f"Body: {message.replace(chr(10), ' ')}"
+            f"BodyLen: {len((message or '').strip())}"
         )
         self._save_record(log_text)
 
@@ -91,13 +101,27 @@ class CommunicationService:
             print(f"\n[Email simulated] To: {to_email} | Subject: {subject}\n")
             return False
 
-        email_text = (
-            f"From: {FROM_EMAIL}\r\n"
-            f"To: {to_email}\r\n"
-            f"Subject: {subject}\r\n"
-            "\r\n"
-            f"{message}"
-        )
+        # Build a proper MIME email (handles plain text and HTML)
+        from email.message import EmailMessage
+
+        msg = EmailMessage()
+        msg["From"] = FROM_EMAIL
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg["Reply-To"] = FROM_EMAIL
+
+        # Auto-detect HTML vs plain text
+        body = message or ""
+        is_html = ("</" in body and "<" in body)
+        if is_html:
+            # Plain fallback + HTML body
+            msg.set_content(
+                "This message contains HTML. If you see this, your client is showing the plain-text fallback."
+            )
+            msg.add_alternative(body, subtype="html")
+        else:
+            # Plain-text body
+            msg.set_content(body)
 
         # Try STARTTLS on 587 first
         try:
@@ -106,7 +130,7 @@ class CommunicationService:
                 server.starttls()
                 server.ehlo()
                 server.login(FROM_EMAIL, FROM_PASSWORD)
-                server.sendmail(FROM_EMAIL, [to_email], email_text)
+                server.send_message(msg)
             print(f"\n[Real email sent] To: {to_email} | Subject: {subject} (via 587 STARTTLS)\n")
             return True
         except Exception as e1:
@@ -117,73 +141,53 @@ class CommunicationService:
             ctx = ssl.create_default_context()
             with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx, timeout=30) as server:
                 server.login(FROM_EMAIL, FROM_PASSWORD)
-                server.sendmail(FROM_EMAIL, [to_email], email_text)
+                server.send_message(msg)
             print(f"\n[Real email sent] To: {to_email} | Subject: {subject} (via 465 SSL)\n")
             return True
         except Exception as e2:
             print(f"[SMTP 465 SSL failed] {e2}")
             return False
-
-    def _improve_with_ai(self, text, your_name, other_name):
-        """
-        Try to improve the email text with Groq.
-        If not available, use a friendly template around the text.
-        """
-        if self._ai_enabled and self._ai_client is not None:
-            try:
-                prompt = (
-                    "You are an email writing assistant. Rewrite the text to be clear, "
-                    "polite, and professional. Keep trip details, dates, and places. "
-                    "Friendly tone. Output only the improved email body.\n\n"
-                    f"Sender: {your_name}\n"
-                    f"Receiver: {other_name}\n\n"
-                    f"Original:\n{text}"
-                )
-                resp = self._ai_client.chat.completions.create(
-                    model=GROQ_MODEL,
-                    messages=[
-                        {"role": "system", "content": "You write and improve emails."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    temperature=0.6,
-                    max_tokens=400,
-                )
-                improved = (resp.choices[0].message.content or "").strip()
-                if improved:
-                    return improved
-            except Exception as e:
-                print(f"[AI error] {e}")
-
-        # Fallback: nice template (free, no AI)
-        return (
-            f"Hi {other_name},\n\n"
-            f"{text.strip()}\n\n"
-            f"Best regards,\n{your_name}\n"
-        )
+    # ==================================================================
 
     def generate_default_email(self, your_name, other_name, subject, plan=None):
         """
-        Generate a default email body using AI (Groq) based on the subject and optional trip plan.
-        Falls back to a clean template if AI is not available.
+        AUTOMATICALLY generate a rich, multi-line email body ONLY from the one-line SUBJECT,
+        and optionally include trip details if provided.
+
+        Output format (automatic, meaningful, well-structured):
+        - Greeting line (Hi <name>,)
+        - 2–3 lines explaining the subject in clear language
+        - If a trip plan exists, include destination and dates
+        - 3–5 bullet points ('- ') with key details/next steps
+        - 1 line inviting questions/confirmation
+        - Closing ("Best regards," + sender name)
         """
-        # Build context text for the model or fallback
+        # Build context for the model or fallback
         if plan:
             trip_category = plan.get("trip_category", "trip")
             context = (
                 f"Subject: {subject}\n"
                 f"{your_name} is planning a {trip_category} to {plan['destination']} "
-                f"from {self._fmt_date(plan['start_date'])} to {self._fmt_date(plan['end_date'])}."
+                f"from {self._fmt_date(plan['start_date'])} to {self._fmt_date(plan['end_date'])} "
+                f"({plan['num_days']} day(s))."
             )
         else:
             context = f"Subject: {subject}\n{your_name} wants to communicate regarding this subject."
 
-        # AI path
+        # AI path: create the full email body automatically
         if self._ai_enabled and self._ai_client is not None:
             try:
                 prompt = (
-                    "Write a short, friendly, and professional email body (5-7 lines) that references the given subject. "
-                    "If trip details are provided, include them naturally. Address the receiver by name and sign off with the sender's name. "
-                    "Do not include the subject line itself; produce only the email body text.\n\n"
+                    "Write a complete email BODY (not the subject) that clearly explains the SUBJECT.\n"
+                    "Requirements:\n"
+                    "- Start with: Hi {receiver_name}, on its own line.\n"
+                    "- In 2–3 lines, explain the purpose in relation to the SUBJECT in plain, friendly language.\n"
+                    "- If trip details are provided in the context, include destination and dates naturally.\n"
+                    "- Add 3–5 bullet points using '- ' for key details, options, or next steps.\n"
+                    "- Add one line inviting questions or confirmation.\n"
+                    "- Close with: Best regards, then the sender's name on the next line.\n"
+                    "- Return only the email body. Do NOT include the subject line.\n"
+                    "- Keep it under 1600 characters, well formatted and meaningful.\n\n"
                     f"Receiver name: {other_name}\n"
                     f"Sender name: {your_name}\n"
                     f"Context:\n{context}\n"
@@ -191,31 +195,44 @@ class CommunicationService:
                 resp = self._ai_client.chat.completions.create(
                     model=GROQ_MODEL,
                     messages=[
-                        {"role": "system", "content": "You write concise, friendly, professional emails."},
+                        {"role": "system", "content": "You write clear, friendly, multi-line emails with bullet points."},
                         {"role": "user", "content": prompt},
                     ],
                     temperature=0.6,
-                    max_tokens=400,
+                    max_tokens=600,
                 )
                 body = (resp.choices[0].message.content or "").strip()
                 if body:
                     return body
             except Exception as e:
-                print(f"[AI default-gen error] {e}")
+                print(f"[AI generation error] {e}")
 
-        # Fallback default body (no AI)
+        # Fallback default body (no AI), still multi‑line and explanatory
         if plan:
             return (
                 f"Hi {other_name},\n\n"
-                f"I wanted to reach out regarding \"{subject}\". I'm planning a trip to {plan['destination']} "
-                f"from {self._fmt_date(plan['start_date'])} to {self._fmt_date(plan['end_date'])}. "
-                f"Please let me know your thoughts or availability.\n\n"
+                f"I’m reaching out regarding \"{subject}\" and wanted to share the key trip details.\n"
+                f"The plan is to visit {plan['destination']} from {self._fmt_date(plan['start_date'])} "
+                f"to {self._fmt_date(plan['end_date'])} ({plan['num_days']} day(s)).\n\n"
+                f"- Purpose: {subject}\n"
+                f"- Destination: {plan['destination']}\n"
+                f"- Dates: {self._fmt_date(plan['start_date'])} to {self._fmt_date(plan['end_date'])}\n"
+                f"- Trip type: {plan.get('trip_category', 'trip')}\n"
+                f"- Next steps: confirm availability/preferences and any requirements\n\n"
+                f"Please let me know your thoughts or if you need more info.\n\n"
                 f"Best regards,\n{your_name}\n"
             )
         else:
             return (
                 f"Hi {other_name},\n\n"
-                f"I wanted to reach out regarding \"{subject}\". Please let me know your thoughts or availability.\n\n"
+                f"I’m writing about \"{subject}\" and wanted to provide a brief explanation and next steps.\n"
+                f"Here are a few key points to help us move forward smoothly:\n\n"
+                f"- Purpose: clarify the main goal related to \"{subject}\"\n"
+                f"- Background: any helpful context supporting decisions\n"
+                f"- Options: possible approaches or timelines\n"
+                f"- Next steps: what I propose and when\n"
+                f"- Support: information or input needed from you\n\n"
+                f"Please let me know your thoughts or adjustments you’d prefer.\n\n"
                 f"Best regards,\n{your_name}\n"
             )
 
@@ -271,9 +288,8 @@ class CommunicationService:
 
         return {
             "type": "GOOGLE_MEET",
-            "organizer": your_name,
-            "participant": other_name,
-            "email": other_email,
+            "organizer": {"name": your_name, "email": FROM_EMAIL},
+            "participant": {"name": other_name, "email": other_email},
             "subject": subject,
             "datetime": meeting_datetime,
             "link": link,
@@ -281,32 +297,24 @@ class CommunicationService:
         }
 
     # ---------------- Normal Email (you -> receiver) ----------------
-    def send_email(self, your_name, other_name, other_email, subject, message, enhance=True):
+    def send_email(self, your_name, other_name, other_email, subject, message, enhance=False):
         """
-        Sends to the receiver (AI‑improved body if enhance=True), then notifies you.
-        Also appends: ' - you for the best contents' to the subject.
-        If 'message' is already AI‑generated (default), pass enhance=False to avoid double processing.
+        Sends to the receiver using the provided multi-line 'message', then notifies you.
+        Automatically appends: ' - you for the best contents' to the subject (as requested).
+        'enhance' is kept for backward compatibility; default is False because we are now
+        auto-generating a polished message via generate_default_email.
         """
         full_subject = f"{subject} - you for the best contents"
 
         timestamp = datetime.now().isoformat(timespec="seconds")
         record = (
             f"EMAIL | From: {your_name} | To: {other_name} <{other_email}> | "
-            f"Subject: {full_subject} | SentAt: {timestamp} | Message: {message}"
+            f"Subject: {full_subject} | SentAt: {timestamp} | BodyLen: {len((message or '').strip())}"
         )
         self._save_record(record)
 
-        if enhance:
-            # Build base body, then improve with AI/template
-            base_body = (
-                f"This email is from {your_name} via the Trip Planner.\n\n"
-                f"{message}\n\n"
-                "This email was sent automatically by the Trip Planner."
-            )
-            body_for_other = self._improve_with_ai(base_body, your_name, other_name)
-        else:
-            # Use the provided message as-is (assumed already polished)
-            body_for_other = message
+        # Use message as-is (already AI-generated and multi-line)
+        body_for_other = message or ""
 
         self._send_email(other_email, full_subject, body_for_other)
 
@@ -319,10 +327,9 @@ class CommunicationService:
 
         return {
             "type": "EMAIL",
-            "from": your_name,
-            "to": other_name,
-            "email": other_email,
+            "from": {"name": your_name, "email": FROM_EMAIL},
+            "to": {"name": other_name, "email": other_email},
             "subject": full_subject,
-            "message": message,
+            "message": body_for_other,
             "status": "SENT (simulated/real depending on config)",
         }

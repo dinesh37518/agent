@@ -1,5 +1,6 @@
 # ===========================
 # File: trip_planner/main.py
+# (Updated: email content is generated AUTOMATICALLY from one-line subject)
 # ===========================
 
 from datetime import date, datetime
@@ -212,9 +213,8 @@ def run_trip_planner(agent, calendar_service, communication_service):
 
 def communication_menu(communication_service, your_name=None, plan=None):
     """
-    Shared communication menu.
-    If 'plan' is given, we can include trip info in default email text.
-    If 'your_name' is None, we will ask for your name.
+    Communication menu.
+    Email content is AUTOMATICALLY generated from the one-line subject (no manual typing).
     """
     print("\n=== Communication Service ===")
     if your_name is None:
@@ -223,14 +223,14 @@ def communication_menu(communication_service, your_name=None, plan=None):
     while True:
         print("\nHow do you want to inform them?")
         print("1. Book a Google Meet appointment")
-        print("2. Send an email notification")
+        print("2. Send an email (auto-generated from subject)")
         print("3. Back to previous menu")
         choice = input("Enter 1, 2, or 3: ").strip()
 
         if choice == "1":
             other_name = input_non_empty("Enter the other person's name: ")
             other_email = input_non_empty("Enter their email address: ")
-            subject = input_non_empty("Enter meeting subject: ")
+            subject = input_non_empty("Enter meeting subject (one line): ")
             meeting_date = ask_for_date("Enter meeting date (DD-MM-YY): ")
             meeting_time = ask_for_time("Enter meeting time (HH:MM, 24-hour): ")
             meeting_datetime = datetime.combine(meeting_date, meeting_time)
@@ -243,59 +243,42 @@ def communication_menu(communication_service, your_name=None, plan=None):
                 meeting_datetime,
             )
 
-            print("\nGoogle Meet appointment created (simulated):")
+            print("\nGoogle Meet appointment created (simulated/real):")
             print(f"  Organizer: {meet['organizer']}")
-            print(f"  Participant: {meet['participant']} <{meet['email']}>")
+            print(f"  Participant: {other_name} <{other_email}>")
             print(f"  Subject: {meet['subject']}")
-            print(
-                "  Date & time: "
-                + meet["datetime"].strftime("%d-%m-%y %H:%M")
-            )
+            print("  Date & time: " + meeting_datetime.strftime("%d-%m-%y %H:%M"))
             print(f"  Meet link: {meet['link']}")
             print(f"  Status: {meet['status']}")
 
         elif choice == "2":
             other_name = input_non_empty("Enter the other person's name: ")
             other_email = input_non_empty("Enter their email address: ")
-            subject = input_non_empty("Enter email subject: ")
+            subject = input_non_empty("Enter email subject (one line): ")
 
-            # If we have a trip plan, we can propose a default message
-            if plan is not None:
-                default_message = (
-                    f"Hi {other_name},\n\n"
-                    f"{your_name} is planning a trip to {plan['destination']} "
-                    f"from {format_date(plan['start_date'])} to {format_date(plan['end_date'])}.\n\n"
-                    "This is an automatic notification from the Trip Planner.\n"
-                )
-            else:
-                default_message = (
-                    f"Hi {other_name},\n\n"
-                    f"{your_name} would like to discuss travel plans with you.\n\n"
-                    "This is an automatic notification from the Trip Planner.\n"
-                )
+            # AUTO-GENERATE full, meaningful, formatted content from subject (+ plan if available)
+            auto_message = communication_service.generate_default_email(
+                your_name, other_name, subject, plan
+            )
 
-            print("\nA default message will be sent:")
-            print("--------------------------------")
-            print(default_message)
-            print("--------------------------------")
-            if ask_yes_no("Do you want to use this default message?"):
-                message = default_message
-            else:
-                print("Type your custom message (single line):")
-                message = input_non_empty("> ")
-
+            # Send immediately with the AI-generated message (no extra prompts)
             email = communication_service.send_email(
                 your_name,
                 other_name,
                 other_email,
                 subject,
-                message,
+                auto_message,
+                enhance=False,  # already generated and formatted
             )
 
-            print("\nEmail notification created (simulated):")
-            print(f"  From: {email['from']}")
-            print(f"  To: {email['to']} <{email['email']}>")
+            print("\nEmail sent (simulated/real):")
+            print(f"  From: {email['from']['name']} <{email['from']['email']}>")
+            print(f"  To: {email['to']['name']} <{email['to']['email']}>")
             print(f"  Subject: {email['subject']}")
+            print("  Body preview:")
+            print("--------------------------------")
+            print(auto_message)
+            print("--------------------------------")
             print(f"  Status: {email['status']}")
 
         elif choice == "3":
