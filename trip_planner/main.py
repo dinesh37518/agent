@@ -1,6 +1,7 @@
 # ===========================
 # File: trip_planner/main.py
-# (Updated: email content is generated AUTOMATICALLY from one-line subject)
+# (Updated: Weather menu now offers 1) another place, 2) current location (shown in brackets),
+#  and prints weather for 5 days before and 5 days after the selected date.)
 # ===========================
 
 from datetime import date, datetime
@@ -14,7 +15,6 @@ from communication_service import CommunicationService
 
 
 def format_date(d):
-    """Return date as DD-MM-YY (all 2 characters)."""
     return d.strftime("%d-%m-%y")
 
 
@@ -92,12 +92,16 @@ def ask_trip_category():
 def run_trip_planner(agent, calendar_service, communication_service):
     print("\n=== Trip Planner ===")
     user_name = input_non_empty("Enter your name: ")
-    home_city = input_non_empty("Enter your home city: ")
+
+    # Auto-detect current city (no prompt)
+    home_city = agent.map_service.get_current_city(default="Chennai")
+    print(f"Detected your location as: {home_city}")
+
     start_date = ask_for_date("Enter the start date for your trip (DD-MM-YY): ")
 
     user_id = user_name.strip().lower().replace(" ", "_")
 
-    # Calendar check for conflicts
+    # Calendar check
     while not calendar_service.is_date_available(user_id, start_date):
         existing = calendar_service.get_commitment(user_id, start_date)
         print(f"\nYou already have '{existing}' on {format_date(start_date)}.")
@@ -111,21 +115,14 @@ def run_trip_planner(agent, calendar_service, communication_service):
                 break
         start_date = ask_for_date("Please enter a different start date (DD-MM-YY): ")
 
-    num_days = ask_for_int(
-        "How many days do you want your trip to be (1-10)? ", 1, 10
-    )
-
+    num_days = ask_for_int("How many days do you want your trip to be (1-10)? ", 1, 10)
     trip_category = ask_trip_category()
 
-    plan = agent.plan_trip(
-        user_name, home_city, start_date, num_days, trip_category
-    )
+    plan = agent.plan_trip(user_name, home_city, start_date, num_days, trip_category)
 
-    trip_type_text = {
-        "hill": "Hill station",
-        "beach": "Beach",
-        "spiritual": "Spiritual place",
-    }.get(plan.get("trip_category"), "Trip")
+    trip_type_text = {"hill": "Hill station", "beach": "Beach", "spiritual": "Spiritual place"}.get(
+        plan.get("trip_category"), "Trip"
+    )
 
     print("\n=== Trip Plan Summary ===")
     print(f"Traveler: {plan['user_name']}")
@@ -136,12 +133,9 @@ def run_trip_planner(agent, calendar_service, communication_service):
         print(f"Approximate distance: {plan['distance_km']} km")
     if plan.get("avg_summer_temp") is not None:
         print(f"Average temperature there: {plan['avg_summer_temp']}°C")
-    print(
-        f"Trip dates: {format_date(plan['start_date'])} to {format_date(plan['end_date'])}"
-    )
+    print(f"Trip dates: {format_date(plan['start_date'])} to {format_date(plan['end_date'])}")
     print(f"Number of days: {plan['num_days']}")
 
-    # Destination info
     info = plan["destination_info"]
     print("\nAbout the destination:")
     print(info["description"])
@@ -150,51 +144,35 @@ def run_trip_planner(agent, calendar_service, communication_service):
         for h in info["highlights"]:
             print(f"  - {h}")
 
-    # Map as trip guider (route)
     print("\nRoute (map trip guide):")
     print(f"Route from {plan['home_city']} to {plan['destination']}:")
     for step in plan["route_steps"]:
         print(f"  - {step}")
 
-    # Weather at destination
     print("\nWeather forecast at destination:")
     for day in plan["weather_forecast"]:
-        print(
-            f"  - {format_date(day['date'])}: High {day['high']}°C, "
-            f"Low {day['low']}°C – {day['description']}"
-        )
+        print(f"  - {format_date(day['date'])}: High {day['high']}°C, Low {day['low']}°C – {day['description']}")
 
-    # Daily itinerary
     print("\nDaily Itinerary:")
     for day in plan["daily_plan"]:
         d_str = format_date(day["date"])
         print(f"Day {day['day']} ({d_str}): {day['activity']}")
         w = day["weather"]
-        print(
-            f"    Weather: High {w['high']}°C, Low {w['low']}°C – {w['description']}"
-        )
+        print(f"    Weather: High {w['high']}°C, Low {w['low']}°C – {w['description']}")
 
-    # Booking travel (flight/train)
+    # Booking
     if ask_yes_no("\nDo you want to book tickets for this trip now?"):
         while True:
-            mode = input(
-                "How do you want to travel? Type 'flight' or 'train': "
-            ).strip().lower()
+            mode = input("How do you want to travel? Type 'flight' or 'train': ").strip().lower()
             if mode in ("flight", "train"):
                 booking = agent.book_trip(user_name, home_city, plan, mode)
                 calendar_service.add_trip(
-                    user_id,
-                    plan["start_date"],
-                    plan["end_date"],
-                    f"Trip to {plan['destination']} by {mode}",
+                    user_id, plan["start_date"], plan["end_date"], f"Trip to {plan['destination']} by {mode}"
                 )
-
                 print("\nBooking details:")
                 print(f"  Type: {booking['type']}")
                 print(f"  Booking ID: {booking['booking_id']}")
-                print(
-                    f"  Route: {booking['origin']} -> {booking['destination']}"
-                )
+                print(f"  Route: {booking['origin']} -> {booking['destination']}")
                 print(f"  Travel date: {format_date(booking['date'])}")
                 print(f"  Status: {booking['status']}")
                 print(f"  Note: {booking['details']}")
@@ -204,18 +182,12 @@ def run_trip_planner(agent, calendar_service, communication_service):
     else:
         print("\nTrip plan saved (not booked). You can book later from the main menu.")
 
-    # Optional: inform someone else about this trip
-    if ask_yes_no(
-        "\nDo you want to inform someone about this trip (Google Meet or email)?"
-    ):
+    # Communication
+    if ask_yes_no("\nDo you want to inform someone about this trip (Google Meet or email)?"):
         communication_menu(communication_service, user_name, plan)
 
 
 def communication_menu(communication_service, your_name=None, plan=None):
-    """
-    Communication menu.
-    Email content is AUTOMATICALLY generated from the one-line subject (no manual typing).
-    """
     print("\n=== Communication Service ===")
     if your_name is None:
         your_name = input_non_empty("Enter your name: ")
@@ -235,13 +207,7 @@ def communication_menu(communication_service, your_name=None, plan=None):
             meeting_time = ask_for_time("Enter meeting time (HH:MM, 24-hour): ")
             meeting_datetime = datetime.combine(meeting_date, meeting_time)
 
-            meet = communication_service.book_google_meet(
-                your_name,
-                other_name,
-                other_email,
-                subject,
-                meeting_datetime,
-            )
+            meet = communication_service.book_google_meet(your_name, other_name, other_email, subject, meeting_datetime)
 
             print("\nGoogle Meet appointment created (simulated/real):")
             print(f"  Organizer: {meet['organizer']}")
@@ -256,19 +222,10 @@ def communication_menu(communication_service, your_name=None, plan=None):
             other_email = input_non_empty("Enter their email address: ")
             subject = input_non_empty("Enter email subject (one line): ")
 
-            # AUTO-GENERATE full, meaningful, formatted content from subject (+ plan if available)
-            auto_message = communication_service.generate_default_email(
-                your_name, other_name, subject, plan
-            )
+            auto_message = communication_service.generate_default_email(your_name, other_name, subject, plan)
 
-            # Send immediately with the AI-generated message (no extra prompts)
             email = communication_service.send_email(
-                your_name,
-                other_name,
-                other_email,
-                subject,
-                auto_message,
-                enhance=False,  # already generated and formatted
+                your_name, other_name, other_email, subject, auto_message, enhance=False
             )
 
             print("\nEmail sent (simulated/real):")
@@ -317,7 +274,7 @@ def use_map_only(map_service):
                 for h in info["highlights"]:
                     print(f"  - {h}")
         elif choice == "2":
-            origin = input_non_empty("Enter origin: ")
+            origin = map_service.get_current_city(default="Chennai")
             destination = input_non_empty("Enter destination: ")
             steps = map_service.get_route(origin, destination)
             print(f"\nRoute from {origin} to {destination}:")
@@ -329,27 +286,50 @@ def use_map_only(map_service):
             print("Invalid choice. Please select 1, 2, or 3.")
 
 
-def check_weather_only(weather_service):
+def check_weather_only(weather_service, map_service):
     print("\n=== Weather Service (Standalone) ===")
-    place = input_non_empty(
-        "Enter city, hill-station, beach, or spiritual place name: "
-    )
-    start = date.today()
-    days = 3
-    forecast = weather_service.get_weather_forecast(place, start, days)
-    print(f"\nWeather forecast for {place} for the next {days} days:")
-    for day in forecast:
-        print(
-            f"  - {format_date(day['date'])}: High {day['high']}°C, "
-            f"Low {day['low']}°C – {day['description']}"
-        )
+    current_city = map_service.get_current_city(default="Chennai")
+    print("Choose location:")
+    print("1. Another place")
+    print(f"2. Current location ({current_city})")
+    while True:
+        opt = input("Enter 1 or 2: ").strip()
+        if opt in ("1", "2"):
+            break
+        print("Please enter 1 or 2.")
+
+    if opt == "1":
+        place = input_non_empty("Enter city / hill-station / beach / spiritual place name: ")
+    else:
+        place = current_city
+
+    ref_date = ask_for_date("Enter reference date (DD-MM-YY): ")
+
+    # Get 5 days before and 5 days after (total 11)
+    days_before = 5
+    days_after = 5
+    series = weather_service.get_weather_range(place, ref_date, days_before, days_after)
+
+    # Print nicely grouped
+    print(f"\nWeather around {place} for 5 days before and 5 days after {format_date(ref_date)}:")
+    print("\nPrevious 5 days:")
+    for item in series:
+        if item["date"] < ref_date:
+            print(f"  - {format_date(item['date'])}: High {item['high']}°C, Low {item['low']}°C – {item['description']}")
+
+    print("\nSelected date:")
+    for item in series:
+        if item["date"] == ref_date:
+            print(f"  = {format_date(item['date'])}: High {item['high']}°C, Low {item['low']}°C – {item['description']}")
+            break
+
+    print("\nNext 5 days:")
+    for item in series:
+        if item["date"] > ref_date:
+            print(f"  - {format_date(item['date'])}: High {item['high']}°C, Low {item['low']}°C – {item['description']}")
 
 
 def use_communication_only(communication_service):
-    """
-    Standalone menu option for communication service,
-    without planning a trip first.
-    """
     communication_menu(communication_service, your_name=None, plan=None)
 
 
@@ -359,9 +339,7 @@ def main():
     calendar_service = CalendarService()
     booking_service = BookingService()
     communication_service = CommunicationService()
-    agent = TripPlannerAgent(
-        map_service, weather_service, calendar_service, booking_service
-    )
+    agent = TripPlannerAgent(map_service, weather_service, calendar_service, booking_service)
 
     while True:
         print("\n==============================")
@@ -381,7 +359,7 @@ def main():
         elif choice == "3":
             use_map_only(map_service)
         elif choice == "4":
-            check_weather_only(weather_service)
+            check_weather_only(weather_service, map_service)  # <-- pass map_service to use current location
         elif choice == "5":
             use_communication_only(communication_service)
         elif choice == "6":

@@ -56,3 +56,11 @@ EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Googl
 GOOGLE_MEET | Organizer: dinesh | Participant: hari <dineshguru0609@gmail.com> | Subject: annual planning | DateTime: 2026-01-13T09:30:00 | Link: https://meet.google.com/130-9300-000
 EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: Google Meet invitation | At: 2026-01-04T18:54:54 | BodyLen: 202
 EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Google Meet appointment created | At: 2026-01-04T18:54:57 | BodyLen: 104
+EMAIL | From: dinesh | To: tharun <tharun0385@gmail.com> | Subject: seeking leave for one day-regarding - you for the best contents | SentAt: 2026-01-06T12:13:53 | BodyLen: 929
+EMAIL_OUT | From: d97148012@gmail.com | To: tharun0385@gmail.com | Subject: seeking leave for one day-regarding - you for the best contents | At: 2026-01-06T12:13:53 | BodyLen: 929
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-06T12:13:57 | BodyLen: 133
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Flight booking confirmed | At: 2026-01-06T12:46:37 | BodyLen: 121
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Train booking confirmed | At: 2026-01-06T13:40:48 | BodyLen: 113
+EMAIL | From: dinesh | To: tharun <tharun0385@gmail.com> | Subject: HOD  asks you to come college becasuse of your indispline activities-regarding - you for the best contents | SentAt: 2026-01-06T13:49:03 | BodyLen: 952
+EMAIL_OUT | From: d97148012@gmail.com | To: tharun0385@gmail.com | Subject: HOD  asks you to come college becasuse of your indispline activities-regarding - you for the best contents | At: 2026-01-06T13:49:03 | BodyLen: 952
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-06T13:49:06 | BodyLen: 176
