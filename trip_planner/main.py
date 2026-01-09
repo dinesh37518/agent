@@ -1,7 +1,6 @@
 # ===========================
 # File: trip_planner/main.py
-# (Fix: live navigation link now includes explicit origin (Karur),
-#  so the starting point is fixed and shown correctly in Google Maps.)
+# (Integrated: adds "0. Chat agent" option that reuses the same services)
 # ===========================
 
 from datetime import date, datetime
@@ -12,6 +11,7 @@ from weather_service import WeatherService
 from calendar_service import CalendarService
 from booking_service import BookingService
 from communication_service import CommunicationService
+from chat_agent import ChatAgent  # <-- add this import
 
 
 def format_date(d):
@@ -93,7 +93,6 @@ def run_trip_planner(agent, calendar_service, communication_service):
     print("\n=== Trip Planner ===")
     user_name = input_non_empty("Enter your name: ")
 
-    # Textual "current" city (fixed to Karur in main())
     home_city = agent.map_service.get_current_city(default="Karur")
     print(f"Using current location: {home_city}")
 
@@ -101,7 +100,6 @@ def run_trip_planner(agent, calendar_service, communication_service):
 
     user_id = user_name.strip().lower().replace(" ", "_")
 
-    # Calendar check
     while not calendar_service.is_date_available(user_id, start_date):
         existing = calendar_service.get_commitment(user_id, start_date)
         print(f"\nYou already have '{existing}' on {format_date(start_date)}.")
@@ -140,12 +138,6 @@ def run_trip_planner(agent, calendar_service, communication_service):
     print("\nAbout the destination:")
     if info.get("description"):
         print(info["description"])
-    if info.get("history"):
-        print("\nHistory:")
-        print(info["history"])
-    if info.get("culture"):
-        print("\nCulture:")
-        print(info["culture"])
     highs = info.get("highlights") or []
     if highs:
         print("\nHighlights:")
@@ -157,7 +149,6 @@ def run_trip_planner(agent, calendar_service, communication_service):
     for step in plan["route_steps"]:
         print(f"  - {step}")
 
-    # Live navigation link with explicit origin and destination (fixed start point)
     if ask_yes_no("\nOpen live navigation in Google Maps with fixed origin (Karur)?"):
         link = agent.map_service.get_live_nav_link(plan["home_city"], plan["destination"])
         print(f"\nLive navigation link:\n{link}")
@@ -175,10 +166,7 @@ def run_trip_planner(agent, calendar_service, communication_service):
     for day in plan["daily_plan"]:
         d_str = format_date(day["date"])
         print(f"Day {day['day']} ({d_str}): {day['activity']}")
-        w = day["weather"]
-        print(f"    Weather: High {w['high']}°C, Low {w['low']}°C – {w['description']}")
 
-    # Booking
     if ask_yes_no("\nDo you want to book tickets for this trip now?"):
         while True:
             mode = input("How do you want to travel? Type 'flight' or 'train': ").strip().lower()
@@ -200,66 +188,8 @@ def run_trip_planner(agent, calendar_service, communication_service):
     else:
         print("\nTrip plan saved (not booked). You can book later from the main menu.")
 
-    # Communication
     if ask_yes_no("\nDo you want to inform someone about this trip (Google Meet or email)?"):
-        communication_menu(communication_service, user_name, plan)
-
-
-def communication_menu(communication_service, your_name=None, plan=None):
-    print("\n=== Communication Service ===")
-    if your_name is None:
-        your_name = input_non_empty("Enter your name: ")
-
-    while True:
-        print("\nHow do you want to inform them?")
-        print("1. Book a Google Meet appointment")
-        print("2. Send an email (auto-generated from subject)")
-        print("3. Back to previous menu")
-        choice = input("Enter 1, 2, or 3: ").strip()
-
-        if choice == "1":
-            other_name = input_non_empty("Enter the other person's name: ")
-            other_email = input_non_empty("Enter their email address: ")
-            subject = input_non_empty("Enter meeting subject (one line): ")
-            meeting_date = ask_for_date("Enter meeting date (DD-MM-YY): ")
-            meeting_time = ask_for_time("Enter meeting time (HH:MM, 24-hour): ")
-            meeting_datetime = datetime.combine(meeting_date, meeting_time)
-
-            meet = communication_service.book_google_meet(your_name, other_name, other_email, subject, meeting_datetime)
-
-            print("\nGoogle Meet appointment created (simulated/real):")
-            print(f"  Organizer: {meet['organizer']}")
-            print(f"  Participant: {other_name} <{other_email}>")
-            print(f"  Subject: {meet['subject']}")
-            print("  Date & time: " + meeting_datetime.strftime("%d-%m-%y %H:%M"))
-            print(f"  Meet link: {meet['link']}")
-            print(f"  Status: {meet['status']}")
-
-        elif choice == "2":
-            other_name = input_non_empty("Enter the other person's name: ")
-            other_email = input_non_empty("Enter their email address: ")
-            subject = input_non_empty("Enter email subject (one line): ")
-
-            auto_message = communication_service.generate_default_email(your_name, other_name, subject, plan)
-
-            email = communication_service.send_email(
-                your_name, other_name, other_email, subject, auto_message, enhance=False
-            )
-
-            print("\nEmail sent (simulated/real):")
-            print(f"  From: {email['from']['name']} <{email['from']['email']}>")
-            print(f"  To: {email['to']['name']} <{email['to']['email']}>")
-            print(f"  Subject: {email['subject']}")
-            print("  Body preview:")
-            print("--------------------------------")
-            print(auto_message)
-            print("--------------------------------")
-            print(f"  Status: {email['status']}")
-
-        elif choice == "3":
-            break
-        else:
-            print("Please enter 1, 2, or 3.")
+        use_communication_only(communication_service)
 
 
 def view_calendar(calendar_service):
@@ -289,33 +219,15 @@ def use_map_only(map_service):
             if info.get("description"):
                 print("\nDescription:")
                 print(info["description"])
-            if info.get("history"):
-                print("\nHistory:")
-                print(info["history"])
-            if info.get("culture"):
-                print("\nCulture:")
-                print(info["culture"])
-            highs = info.get("highlights") or []
-            if highs:
-                print("\nHighlights:")
-                for h in highs:
-                    print(f"  - {h}")
         elif choice == "2":
-            origin = map_service.get_current_city(default="Karur")  # text origin
+            origin = map_service.get_current_city(default="Karur")
             destination = input_non_empty("Enter destination: ")
             steps = map_service.get_route(origin, destination)
             print(f"\nRoute from {origin} to {destination}:")
             for step in steps:
                 print(f"  - {step}")
-
-            if ask_yes_no("\nOpen live navigation in Google Maps with fixed origin (Karur)?"):
-                link = map_service.get_live_nav_link(origin, destination)
-                print(f"\nLive navigation link:\n{link}")
-                try:
-                    import webbrowser
-                    webbrowser.open(link)
-                except Exception:
-                    pass
+            link = map_service.get_live_nav_link(origin, destination)
+            print(f"\nLive navigation link:\n{link}")
         elif choice == "3":
             break
         else:
@@ -333,30 +245,24 @@ def check_weather_only(weather_service, map_service):
         if opt in ("1", "2"):
             break
         print("Please enter 1 or 2.")
-
     if opt == "1":
         place = input_non_empty("Enter city / hill-station / beach / spiritual place name: ")
     else:
         place = current_city
-
     ref_date = ask_for_date("Enter reference date (DD-MM-YY): ")
-
     days_before = 5
     days_after = 5
     series = weather_service.get_weather_range(place, ref_date, days_before, days_after)
-
     print(f"\nWeather around {place} for 5 days before and 5 days after {format_date(ref_date)}:")
     print("\nPrevious 5 days:")
     for item in series:
         if item["date"] < ref_date:
             print(f"  - {format_date(item['date'])}: High {item['high']}°C, Low {item['low']}°C – {item['description']}")
-
     print("\nSelected date:")
     for item in series:
         if item["date"] == ref_date:
             print(f"  = {format_date(item['date'])}: High {item['high']}°C, Low {item['low']}°C – {item['description']}")
             break
-
     print("\nNext 5 days:")
     for item in series:
         if item["date"] > ref_date:
@@ -364,12 +270,59 @@ def check_weather_only(weather_service, map_service):
 
 
 def use_communication_only(communication_service):
-    communication_menu(communication_service, your_name=None, plan=None)
+    print("\n=== Notify Someone ===")
+    while True:
+        print("1. Google Meet")
+        print("2. Email")
+        print("3. Back")
+        ch = input("Select 1/2/3: ").strip()
+        if ch == "1":
+            other_name = input_non_empty("Enter the other person's name: ")
+            other_email = input_non_empty("Enter their email address: ")
+            subject = input_non_empty("Enter meeting subject: ")
+            d = ask_for_date("Enter meeting date (DD-MM-YY): ")
+            while True:
+                t = input("Enter meeting time (HH:MM, 24-hour): ").strip()
+                try:
+                    mt = datetime.strptime(t, "%H:%M").time()
+                    break
+                except ValueError:
+                    print("Invalid time. Use HH:MM.")
+            when = datetime.combine(d, mt)
+            # Quick wrapper (you can import comm here, but pass via ChatAgent in chat)
+            comm = CommunicationService()
+            meet = comm.book_google_meet("You", other_name, other_email, subject, when)
+            print("\nGoogle Meet appointment created:")
+            print(f"  Subject: {meet['subject']}")
+            print(f"  Date & time: {when.strftime('%d-%m-%y %H:%M')}")
+            print(f"  Link: {meet['link']}")
+            print(f"  Status: {meet['status']}")
+        elif ch == "2":
+            other_name = input_non_empty("Enter the other person's name: ")
+            other_email = input_non_empty("Enter their email address: ")
+            subject = input_non_empty("Enter email subject: ")
+            comm = CommunicationService()
+            default_message = comm.generate_default_email("You", other_name, subject, None)
+            print("\nDefault message:")
+            print("--------------------------------")
+            print(default_message)
+            print("--------------------------------")
+            if ask_yes_no("Send this message?"):
+                message = default_message
+            else:
+                message = input_non_empty("Type your message: ")
+            email = comm.send_email("You", other_name, other_email, subject, message, enhance=False)
+            print("\nEmail sent:")
+            print(f"  Subject: {email['subject']}")
+            print(f"  Status: {email['status']}")
+        elif ch == "3":
+            break
+        else:
+            print("Please select 1, 2, or 3.")
 
 
 def main():
     map_service = MapService()
-    # Force textual current location to Karur for consistency
     if hasattr(map_service, "set_fixed_city"):
         map_service.set_fixed_city("Karur")
 
@@ -383,6 +336,7 @@ def main():
         print("\n==============================")
         print("AI Trip Planner")
         print("==============================")
+        print("0. Chat agent (conversational mode)")  # <-- integrated chat
         print("1. Plan a trip")
         print("2. View my calendar")
         print("3. Use map only")
@@ -390,7 +344,16 @@ def main():
         print("5. Communication service (Meet / Email)")
         print("6. Exit")
         choice = input("Enter your choice: ").strip()
-        if choice == "1":
+        if choice == "0":
+            ChatAgent(
+                map_service=map_service,
+                weather_service=weather_service,
+                calendar_service=calendar_service,
+                booking_service=booking_service,
+                communication_service=communication_service,
+                trip_agent=agent,
+            ).run()
+        elif choice == "1":
             run_trip_planner(agent, calendar_service, communication_service)
         elif choice == "2":
             view_calendar(calendar_service)
@@ -404,7 +367,7 @@ def main():
             print("Goodbye!")
             break
         else:
-            print("Invalid choice. Please select a number from 1 to 6.")
+            print("Invalid choice. Please select a number from 0 to 6.")
 
 
 if __name__ == "__main__":
