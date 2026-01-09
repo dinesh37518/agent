@@ -64,3 +64,8 @@ EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Train
 EMAIL | From: dinesh | To: tharun <tharun0385@gmail.com> | Subject: HOD  asks you to come college becasuse of your indispline activities-regarding - you for the best contents | SentAt: 2026-01-06T13:49:03 | BodyLen: 952
 EMAIL_OUT | From: d97148012@gmail.com | To: tharun0385@gmail.com | Subject: HOD  asks you to come college becasuse of your indispline activities-regarding - you for the best contents | At: 2026-01-06T13:49:03 | BodyLen: 952
 EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-06T13:49:06 | BodyLen: 176
+GOOGLE_MEET | Organizer: dinesh | Participant: hari <dineshguru0609@gmail.com> | Subject: youre selected for campus interview in our company name is tcs | DateTime: 2026-01-12T09:44:00 | Link: https://meet.google.com/120-9440-000
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: Google Meet invitation | At: 2026-01-09T08:32:20 | BodyLen: 249
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Google Meet appointment created | At: 2026-01-09T08:32:23 | BodyLen: 104
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Flight booking confirmed | At: 2026-01-09T08:33:36 | BodyLen: 115
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Flight booking confirmed | At: 2026-01-09T08:58:30 | BodyLen: 121

@@ -1,17 +1,24 @@
 # =================================
 # File: trip_planner/map_service.py
-# (Updated: auto-detect current city via IP; no prompt needed)
+# (Fix: get_live_nav_link(origin, destination) includes explicit origin,
+#  so Google Maps shows the starting point correctly. Textual current city is fixed.)
 # =================================
 
+import os
+import re
+from urllib.parse import quote_plus
+
 try:
-    import requests
+    from groq import Groq
 except Exception:
-    requests = None
+    Groq = None
+
+DEFAULT_FIXED_CITY = "Karur"
+DEFAULT_GROQ_API_KEY = "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"  # prefer env: GROQ_API_KEY
 
 
 class MapService:
     def __init__(self):
-        # Predefined simple routes between some popular city -> hill-station pairs
         self.routes = {
             ("chennai", "ooty"): [
                 "Start from Chennai.",
@@ -98,162 +105,187 @@ class MapService:
             ],
         }
 
-        # Basic information about some places
         self.places_info = {
-            "chennai": {
-                "name": "Chennai",
-                "description": "A coastal city in Tamil Nadu known for its beaches, temples, and rich culture.",
-                "highlights": ["Marina Beach", "Kapaleeshwarar Temple", "Santhome Church"],
-            },
-            "bangalore": {
-                "name": "Bangalore",
-                "description": "Capital of Karnataka, known as the Garden City and IT hub of India.",
-                "highlights": ["Cubbon Park", "Lalbagh Botanical Garden", "Vidhana Soudha"],
-            },
-            "mumbai": {
-                "name": "Mumbai",
-                "description": "Financial capital of India, famous for Bollywood and the Gateway of India.",
-                "highlights": ["Marine Drive", "Gateway of India", "Elephanta Caves"],
-            },
-            "hyderabad": {
-                "name": "Hyderabad",
-                "description": "Capital of Telangana, known for Charminar and Hyderabadi biryani.",
-                "highlights": ["Charminar", "Golconda Fort", "Hussain Sagar Lake"],
-            },
-            "delhi": {
-                "name": "Delhi",
-                "description": "Capital city of India with a mix of historic monuments and modern life.",
-                "highlights": ["Red Fort", "India Gate", "Qutub Minar"],
-            },
-            "ooty": {
-                "name": "Ooty",
-                "description": "Ooty (Udhagamandalam) is a popular hill station in Tamil Nadu known for its cool climate and tea gardens.",
-                "highlights": ["Ooty Lake boat ride", "Doddabetta Peak", "Nilgiri Mountain Railway toy train"],
-            },
-            "kodaikanal": {
-                "name": "Kodaikanal",
-                "description": "Kodaikanal is a scenic hill station in Tamil Nadu, often called the 'Princess of Hill Stations'.",
-                "highlights": ["Kodaikanal Lake", "Coaker's Walk", "Pine forests"],
-            },
-            "munnar": {
-                "name": "Munnar",
-                "description": "Munnar is a hill station in Kerala known for tea plantations, valleys, and cool weather.",
-                "highlights": ["Tea gardens", "Eravikulam National Park", "Mattupetty Dam"],
-            },
-            "coorg": {
-                "name": "Coorg",
-                "description": "Coorg (Kodagu) is a hill station in Karnataka known for coffee estates and misty hills.",
-                "highlights": ["Coffee plantations", "Abbey Falls", "Raja's Seat viewpoint"],
-            },
-            "manali": {
-                "name": "Manali",
-                "description": "Manali is a famous hill station in Himachal Pradesh, popular for snow and adventure sports.",
-                "highlights": ["Solang Valley", "Rohtang Pass (seasonal)", "Hadimba Temple"],
-            },
-            "shimla": {
-                "name": "Shimla",
-                "description": "Shimla is the capital of Himachal Pradesh, once the summer capital of British India.",
-                "highlights": ["The Ridge", "Mall Road", "Jakhoo Temple"],
-            },
-            "mahabaleshwar": {
-                "name": "Mahabaleshwar",
-                "description": "Mahabaleshwar is a hill station in Maharashtra known for viewpoints and strawberries.",
-                "highlights": ["Arthur's Seat", "Venna Lake", "Strawberry farms (seasonal)"],
-            },
+            "chennai": {"name": "Chennai", "description": "A coastal city in Tamil Nadu known for its beaches, temples, and rich culture.", "highlights": ["Marina Beach", "Kapaleeshwarar Temple", "Santhome Church"]},
+            "bangalore": {"name": "Bangalore", "description": "Capital of Karnataka, known as the Garden City and IT hub of India.", "highlights": ["Cubbon Park", "Lalbagh Botanical Garden", "Vidhana Soudha"]},
+            "mumbai": {"name": "Mumbai", "description": "Financial capital of India, famous for Bollywood and the Gateway of India.", "highlights": ["Marine Drive", "Gateway of India", "Elephanta Caves"]},
+            "hyderabad": {"name": "Hyderabad", "description": "Capital of Telangana, known for Charminar and Hyderabadi biryani.", "highlights": ["Charminar", "Golconda Fort", "Hussain Sagar Lake"]},
+            "delhi": {"name": "Delhi", "description": "Capital city of India with a mix of historic monuments and modern life.", "highlights": ["Red Fort", "India Gate", "Qutub Minar"]},
+            "ooty": {"name": "Ooty", "description": "Ooty is a hill station in Tamil Nadu known for its cool climate and tea gardens.", "highlights": ["Ooty Lake", "Doddabetta Peak", "Nilgiri Mountain Railway"]},
+            "kodaikanal": {"name": "Kodaikanal", "description": "Kodaikanal is a scenic hill station in Tamil Nadu.", "highlights": ["Kodaikanal Lake", "Coaker's Walk", "Pine forests"]},
+            "munnar": {"name": "Munnar", "description": "Munnar is a hill station in Kerala known for tea plantations and valleys.", "highlights": ["Tea gardens", "Eravikulam National Park", "Mattupetty Dam"]},
+            "coorg": {"name": "Coorg", "description": "Coorg is a hill station in Karnataka known for coffee estates and misty hills.", "highlights": ["Coffee plantations", "Abbey Falls", "Raja's Seat"]},
+            "manali": {"name": "Manali", "description": "Manali is a hill station in Himachal Pradesh, popular for snow and adventure.", "highlights": ["Solang Valley", "Rohtang Pass", "Hadimba Temple"]},
+            "shimla": {"name": "Shimla", "description": "Shimla is the capital of Himachal Pradesh.", "highlights": ["The Ridge", "Mall Road", "Jakhoo Temple"]},
+            "mahabaleshwar": {"name": "Mahabaleshwar", "description": "Mahabaleshwar is a hill station in Maharashtra known for viewpoints and strawberries.", "highlights": ["Arthur's Seat", "Venna Lake", "Strawberry farms"]},
         }
 
-        # Cache for current city detection
-        self._current_city_cache = None
+        self._fixed_city = self._load_fixed_city() or DEFAULT_FIXED_CITY
 
-    # ---------- Current location detection (IP-based) ----------
+        self._ai_client = None
+        self._ai_enabled = False
+        if Groq is not None:
+            api_key = os.environ.get("GROQ_API_KEY", DEFAULT_GROQ_API_KEY).strip()
+            if api_key.startswith("gsk_"):
+                try:
+                    self._ai_client = Groq(api_key=api_key)
+                    self._ai_enabled = True
+                except Exception as e:
+                    print(f"[AI init error] {e}")
 
-    def _get_json(self, url, timeout=8):
-        if not requests:
-            return None
+    # ---- Fixed city helpers ----
+    def _load_fixed_city(self):
+        env_city = os.environ.get("MY_HOME_CITY", "").strip()
+        if env_city:
+            return env_city
         try:
-            r = requests.get(url, timeout=timeout)
-            if r.status_code == 200:
-                return r.json()
+            base = os.path.dirname(__file__)
+            path = os.path.join(base, "home_city.txt")
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    line = f.readline().strip()
+                    if line:
+                        return line
         except Exception:
-            return None
+            pass
         return None
 
-    def detect_current_city_info(self):
-        """
-        Returns a dict like {"city": "Chennai", "region": "Tamil Nadu", "country": "IN"}
-        or None if detection failed.
-        """
-        if self._current_city_cache is not None:
-            return self._current_city_cache
+    def set_fixed_city(self, city_name):
+        city = (city_name or "").strip()
+        self._fixed_city = city if city else DEFAULT_FIXED_CITY
+        try:
+            base = os.path.dirname(__file__)
+            path = os.path.join(base, "home_city.txt")
+            if city:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(city + "\n")
+            else:
+                if os.path.exists(path):
+                    os.remove(path)
+        except Exception:
+            pass
 
-        info = None
+    def get_current_city(self, default=None):
+        return self._fixed_city or default or DEFAULT_FIXED_CITY
 
-        # Try ipinfo.io
-        data = self._get_json("https://ipinfo.io/json")
-        if data and data.get("city"):
-            info = {
-                "city": data.get("city"),
-                "region": data.get("region"),
-                "country": data.get("country"),
-            }
+    # ---- AI route generation ----
+    def _normalize_steps(self, text):
+        lines = [ln.strip() for ln in (text or "").splitlines()]
+        out = []
+        for ln in lines:
+            ln = re.sub(r"^\s*(?:[-–•*]|\d+[\.\)]?)\s*", "", ln)
+            if ln:
+                out.append(ln)
+        return out[:16]
 
-        # Try ipapi.co if needed
-        if info is None:
-            data = self._get_json("https://ipapi.co/json/")
-            if data and data.get("city"):
-                info = {
-                    "city": data.get("city"),
-                    "region": data.get("region"),
-                    "country": data.get("country"),
-                }
+    def _ai_generate_route(self, origin, destination, mode="driving"):
+        if not self._ai_enabled or self._ai_client is None:
+            return []
+        try:
+            prompt = (
+                "You are a navigation assistant. Provide concise, safe, high-level step-by-step directions.\n"
+                f"Origin: {origin}\nDestination: {destination}\nMode: {mode}\n\n"
+                "Requirements:\n"
+                "- 6 to 12 steps, each one line.\n"
+                "- Prefer major highways/arterials; avoid tiny local street names.\n"
+                "- No live traffic or exact kilometers.\n"
+                "- Output only the steps (no numbering, no intro/outro)."
+            )
+            resp = self._ai_client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+                max_tokens=600,
+            )
+            text = (resp.choices[0].message.content or "").strip()
+            return self._normalize_steps(text)
+        except Exception as e:
+            print(f"[AI route error] {e}")
+            return []
 
-        # Try ip-api.com if needed
-        if info is None:
-            data = self._get_json("http://ip-api.com/json/")
-            if data and data.get("status") == "success" and data.get("city"):
-                info = {
-                    "city": data.get("city"),
-                    "region": data.get("regionName"),
-                    "country": data.get("countryCode"),
-                }
+    # ---- AI place paragraph ----
+    def _ai_place_paragraph(self, place_name):
+        if not self._ai_enabled or self._ai_client is None:
+            return None
+        try:
+            prompt = (
+                "Write one well-structured paragraph (6–8 sentences) introducing the place below. "
+                "Briefly cover: what it is known for, a touch of history, cultural feel (food/festivals), "
+                "and 3–4 key highlights. No bullet points, no headings, no markdown; plain text only. "
+                "Keep under 900 characters.\n\n"
+                f"Place: {place_name}"
+            )
+            resp = self._ai_client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+                max_tokens=500,
+            )
+            paragraph = (resp.choices[0].message.content or "").strip()
+            paragraph = re.sub(r"\s+\n", " ", paragraph)
+            paragraph = re.sub(r"\n+", " ", paragraph)
+            return paragraph if paragraph else None
+        except Exception as e:
+            print(f"[AI place error] {e}")
+            return None
 
-        self._current_city_cache = info
-        return info
+    # ---- Public APIs ----
+    def get_route(self, origin, destination, mode="driving"):
+        origin_clean = origin.strip()
+        dest_clean = destination.strip()
 
-    def get_current_city(self, default="Chennai"):
-        """
-        Returns detected city name (string). If detection fails, returns default without asking.
-        """
-        info = self.detect_current_city_info()
-        if info and info.get("city"):
-            return info["city"]
-        return default
+        steps = self._ai_generate_route(origin_clean, dest_clean, mode=mode)
+        if steps:
+            return steps
 
-    # ---------- Original MapService functionality ----------
-
-    def get_route(self, origin, destination):
-        origin_key = origin.strip().lower()
-        dest_key = destination.strip().lower()
-        key = (origin_key, dest_key)
+        key = (origin_clean.lower(), dest_clean.lower())
         if key in self.routes:
             return self.routes[key]
 
-        # Generic fallback route description
-        steps = [
-            f"Start from {origin}.",
-            f"Head towards {destination} following the main highway.",
-            "Follow road signs and navigation instructions on your preferred map app.",
-            f"Arrive at {destination}.",
+        return [
+            f"Start from {origin_clean}.",
+            f"Head towards {dest_clean} using primary highways.",
+            "Follow major road signs and your preferred map app as needed.",
+            f"Arrive at {dest_clean}.",
         ]
-        return steps
+
+    def get_live_nav_link(self, origin, destination, mode="driving"):
+        """
+        Live navigation link with explicit origin and destination.
+        This fixes the starting point so Google Maps shows the route from origin to destination:
+          https://www.google.com/maps/dir/?api=1&origin=<ORIGIN>&destination=<DEST>&travelmode=<MODE>&dir_action=navigate
+        """
+        o = quote_plus(origin.strip())
+        d = quote_plus(destination.strip())
+        m = quote_plus((mode or "driving").strip())
+        return f"https://www.google.com/maps/dir/?api=1&origin={o}&destination={d}&travelmode={m}&dir_action=navigate"
 
     def describe_place(self, place_name):
-        key = place_name.strip().lower()
-        info = self.places_info.get(key)
-        if not info:
+        paragraph = self._ai_place_paragraph(place_name)
+        if paragraph:
             return {
                 "name": place_name,
-                "description": f"{place_name} is a nice place to visit. You can explore local attractions, food, and culture.",
+                "description": paragraph,
+                "history": "",
+                "culture": "",
                 "highlights": [],
             }
-        return info
+
+        key = place_name.strip().lower()
+        info = self.places_info.get(key)
+        if info:
+            return {
+                "name": info.get("name", place_name),
+                "description": info.get("description", f"{place_name} is a notable destination."),
+                "history": "",
+                "culture": "",
+                "highlights": info.get("highlights", []),
+            }
+
+        return {
+            "name": place_name,
+            "description": f"{place_name} is a notable destination with attractions, local cuisine, and culture.",
+            "history": "",
+            "culture": "",
+            "highlights": [],
+        }

@@ -1,7 +1,7 @@
 # ===========================
 # File: trip_planner/main.py
-# (Updated: Weather menu now offers 1) another place, 2) current location (shown in brackets),
-#  and prints weather for 5 days before and 5 days after the selected date.)
+# (Fix: live navigation link now includes explicit origin (Karur),
+#  so the starting point is fixed and shown correctly in Google Maps.)
 # ===========================
 
 from datetime import date, datetime
@@ -93,9 +93,9 @@ def run_trip_planner(agent, calendar_service, communication_service):
     print("\n=== Trip Planner ===")
     user_name = input_non_empty("Enter your name: ")
 
-    # Auto-detect current city (no prompt)
-    home_city = agent.map_service.get_current_city(default="Chennai")
-    print(f"Detected your location as: {home_city}")
+    # Textual "current" city (fixed to Karur in main())
+    home_city = agent.map_service.get_current_city(default="Karur")
+    print(f"Using current location: {home_city}")
 
     start_date = ask_for_date("Enter the start date for your trip (DD-MM-YY): ")
 
@@ -138,16 +138,34 @@ def run_trip_planner(agent, calendar_service, communication_service):
 
     info = plan["destination_info"]
     print("\nAbout the destination:")
-    print(info["description"])
-    if info.get("highlights"):
-        print("Highlights:")
-        for h in info["highlights"]:
+    if info.get("description"):
+        print(info["description"])
+    if info.get("history"):
+        print("\nHistory:")
+        print(info["history"])
+    if info.get("culture"):
+        print("\nCulture:")
+        print(info["culture"])
+    highs = info.get("highlights") or []
+    if highs:
+        print("\nHighlights:")
+        for h in highs:
             print(f"  - {h}")
 
     print("\nRoute (map trip guide):")
     print(f"Route from {plan['home_city']} to {plan['destination']}:")
     for step in plan["route_steps"]:
         print(f"  - {step}")
+
+    # Live navigation link with explicit origin and destination (fixed start point)
+    if ask_yes_no("\nOpen live navigation in Google Maps with fixed origin (Karur)?"):
+        link = agent.map_service.get_live_nav_link(plan["home_city"], plan["destination"])
+        print(f"\nLive navigation link:\n{link}")
+        try:
+            import webbrowser
+            webbrowser.open(link)
+        except Exception:
+            pass
 
     print("\nWeather forecast at destination:")
     for day in plan["weather_forecast"]:
@@ -267,19 +285,37 @@ def use_map_only(map_service):
         if choice == "1":
             place = input_non_empty("Enter place name: ")
             info = map_service.describe_place(place)
-            print(f"\nPlace: {info['name']}")
-            print(info["description"])
-            if info.get("highlights"):
-                print("Highlights:")
-                for h in info["highlights"]:
+            print(f"\nPlace: {info.get('name', place)}")
+            if info.get("description"):
+                print("\nDescription:")
+                print(info["description"])
+            if info.get("history"):
+                print("\nHistory:")
+                print(info["history"])
+            if info.get("culture"):
+                print("\nCulture:")
+                print(info["culture"])
+            highs = info.get("highlights") or []
+            if highs:
+                print("\nHighlights:")
+                for h in highs:
                     print(f"  - {h}")
         elif choice == "2":
-            origin = map_service.get_current_city(default="Chennai")
+            origin = map_service.get_current_city(default="Karur")  # text origin
             destination = input_non_empty("Enter destination: ")
             steps = map_service.get_route(origin, destination)
             print(f"\nRoute from {origin} to {destination}:")
             for step in steps:
                 print(f"  - {step}")
+
+            if ask_yes_no("\nOpen live navigation in Google Maps with fixed origin (Karur)?"):
+                link = map_service.get_live_nav_link(origin, destination)
+                print(f"\nLive navigation link:\n{link}")
+                try:
+                    import webbrowser
+                    webbrowser.open(link)
+                except Exception:
+                    pass
         elif choice == "3":
             break
         else:
@@ -288,7 +324,7 @@ def use_map_only(map_service):
 
 def check_weather_only(weather_service, map_service):
     print("\n=== Weather Service (Standalone) ===")
-    current_city = map_service.get_current_city(default="Chennai")
+    current_city = map_service.get_current_city(default="Karur")
     print("Choose location:")
     print("1. Another place")
     print(f"2. Current location ({current_city})")
@@ -305,12 +341,10 @@ def check_weather_only(weather_service, map_service):
 
     ref_date = ask_for_date("Enter reference date (DD-MM-YY): ")
 
-    # Get 5 days before and 5 days after (total 11)
     days_before = 5
     days_after = 5
     series = weather_service.get_weather_range(place, ref_date, days_before, days_after)
 
-    # Print nicely grouped
     print(f"\nWeather around {place} for 5 days before and 5 days after {format_date(ref_date)}:")
     print("\nPrevious 5 days:")
     for item in series:
@@ -335,6 +369,10 @@ def use_communication_only(communication_service):
 
 def main():
     map_service = MapService()
+    # Force textual current location to Karur for consistency
+    if hasattr(map_service, "set_fixed_city"):
+        map_service.set_fixed_city("Karur")
+
     weather_service = WeatherService()
     calendar_service = CalendarService()
     booking_service = BookingService()
@@ -359,7 +397,7 @@ def main():
         elif choice == "3":
             use_map_only(map_service)
         elif choice == "4":
-            check_weather_only(weather_service, map_service)  # <-- pass map_service to use current location
+            check_weather_only(weather_service, map_service)
         elif choice == "5":
             use_communication_only(communication_service)
         elif choice == "6":
