@@ -76,3 +76,16 @@ EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip 
 EMAIL | From: dinesh | To: dend to my mail for my reference <d97148012@gmail.com> | Subject: dates filled - you for the best contents | SentAt: 2026-01-09T16:41:35 | BodyLen: 865
 EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: dates filled - you for the best contents | At: 2026-01-09T16:41:35 | BodyLen: 865
 EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-09T16:41:39 | BodyLen: 135
+EMAIL | From: You | To: karthick <karthicksg12@gmail.com> | Subject: one  day leave for sick-regarding - you for the best contents | SentAt: 2026-01-10T06:21:26 | BodyLen: 959
+EMAIL_OUT | From: d97148012@gmail.com | To: karthicksg12@gmail.com | Subject: one  day leave for sick-regarding - you for the best contents | At: 2026-01-10T06:21:26 | BodyLen: 959
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-10T06:21:30 | BodyLen: 132
+EMAIL | From: You | To: hari <dineshguru0609@gmail.com> | Subject: one day leave - you for the best contents | SentAt: 2026-01-11T06:38:18 | BodyLen: 893
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: one day leave - you for the best contents | At: 2026-01-11T06:38:18 | BodyLen: 893
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-11T06:38:21 | BodyLen: 110
+EMAIL | From: dinesh | To: hari <dineshguru0609@gmail.com> | Subject: one day leave - you for the best contents | SentAt: 2026-01-11T06:56:02 | BodyLen: 817
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: one day leave - you for the best contents | At: 2026-01-11T06:56:02 | BodyLen: 817
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-11T06:56:05 | BodyLen: 113
+EMAIL | From: dinesh | To: hari <dineshguru0609@gmail.com> | Subject: one day leave for friend's weddind [19 january 26]-regarding - you for the best contents | SentAt: 2026-01-11T07:18:20 | BodyLen: 848
+EMAIL_OUT | From: d97148012@gmail.com | To: dineshguru0609@gmail.com | Subject: one day leave for friend's weddind [19 january 26]-regarding - you for the best contents | At: 2026-01-11T07:18:20 | BodyLen: 848
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Trip email sent | At: 2026-01-11T07:18:23 | BodyLen: 160
+EMAIL_OUT | From: d97148012@gmail.com | To: d97148012@gmail.com | Subject: Flight booking confirmed | At: 2026-01-11T07:28:52 | BodyLen: 115

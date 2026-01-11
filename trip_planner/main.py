@@ -300,9 +300,10 @@ def use_communication_only(communication_service):
         elif ch == "2":
             other_name = input_non_empty("Enter the other person's name: ")
             other_email = input_non_empty("Enter their email address: ")
+            user_name = input_non_empty("Enter your name: ")
             subject = input_non_empty("Enter email subject: ")
             comm = CommunicationService()
-            default_message = comm.generate_default_email("You", other_name, subject, None)
+            default_message = comm.generate_default_email(user_name, other_name, subject, None)
             print("\nDefault message:")
             print("--------------------------------")
             print(default_message)
@@ -311,7 +312,7 @@ def use_communication_only(communication_service):
                 message = default_message
             else:
                 message = input_non_empty("Type your message: ")
-            email = comm.send_email("You", other_name, other_email, subject, message, enhance=False)
+            email = comm.send_email(user_name, other_name, other_email, subject, message, enhance=False)
             print("\nEmail sent:")
             print(f"  Subject: {email['subject']}")
             print(f"  Status: {email['status']}")
